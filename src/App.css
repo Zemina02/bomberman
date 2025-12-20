@@ -1,8 +1,36 @@
+html{
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  align-items:center;
+  justify-content:center;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: absolute;
+  margin: 0;
+}
+
+
+.caixaescolhas{
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+}
+
 .escolhas{
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-direction: column;
   margin-top: 20px;
 }
 
@@ -12,15 +40,75 @@
   text-align: center;
   display: flex;
   flex-direction: column;
+  list-style: none;
 }
 
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f0f0f0;
-  margin: 550px;
-  padding: 0;
-  align-items: center;
+.mapasButton{
+  border: none;
+  background: none;
+  transition: all 0.3s ease;
+}
+.mapasButton:hover{
+  cursor: pointer;
+  transform: scale(1.1);
+}
+
+.MapasRow{
+  display: flex;
   justify-content: center;
-  flex-direction: column;
+  align-items:center;
+  flex-direction:row;
+  justify-items: center;
+  margin-top: 20px;
+  gap: 20px;
+}
+
+.game-view{
+  position: static;
+  justify-content: center;
+  align-items: center;
+}
+
+.fundo{
+  position: relative;
+  width: 120vw;
+  height: 200vh;
+  left: 0;
+  top: -5vh;
+}
+
+.maploc {
+
+  position: absolute;
+  left: 31vw;
+  top: 10vh;
+
   display: grid;
+  grid-template-columns: repeat(16, 47px);
+  grid-template-rows: repeat(20, 40px);
+}
+
+.tile {
+  width: 47px;
+  height: 40px;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.tile.wall {
+  background: rgb(63, 4, 4);
+}
+
+.tile.floor {
+  background-image: url("/public/caixas.png");
+}
+
+.tile.box {
+  background: orange;
+}
+
+.tile.player {
+  background-image: url("/public/mago.png");
+  background-position: 0 0;
+
 }
