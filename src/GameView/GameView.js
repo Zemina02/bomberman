@@ -41,11 +41,13 @@ function GameView()
   useEffect(() => {ReadMaps().then(setMap);}, []);
 
   return (
-    <div className="game-view">
-      <img className="fundo" src="/fundo.png" />
-      <div>
-       <RenderMap map={map}/>
-      </div>
+    <div className="stage">
+        <img className="fundo" src="/fundo.png" />
+        <div className="game-view">
+            <div>
+            <RenderMap map={map}/>
+            </div>
+        </div>
     </div>
   );
 }

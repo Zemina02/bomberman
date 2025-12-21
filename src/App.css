@@ -63,34 +63,49 @@ body {
   gap: 20px;
 }
 
-.game-view{
-  position: static;
-  justify-content: center;
+.stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
   align-items: center;
+  justify-content: center;
 }
 
 .fundo{
-  position: relative;
-  width: 120vw;
-  height: 200vh;
-  left: 0;
-  top: -5vh;
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  left: 0px;
+  top: 0px;
+  scale: calc(150%);
+  z-index: -1;
 }
+
+.game-view{
+  position: relative;
+  top: -2vh;
+  left: 0vw;
+  width: 46vw;
+  height: 48vh;
+  transform-origin: top left;
+}
+
 
 .maploc {
 
   position: absolute;
-  left: 31vw;
-  top: 10vh;
+  inset: 0; 
 
   display: grid;
-  grid-template-columns: repeat(16, 47px);
-  grid-template-rows: repeat(20, 40px);
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
 }
 
 .tile {
-  width: 47px;
-  height: 40px;
+  width: 1fr;
+  height: 1fr;
   background-size: cover;
   background-repeat: no-repeat;
 }
