@@ -1,6 +1,7 @@
 import { useState } from "react";
 import GameView from "../GameView/GameView.js";
-
+ 
+var mapaid = 0;
 
 function Options({ value, onClick}) {
   return (
@@ -41,7 +42,7 @@ export default function Menu() {
   const [isGameVisible, setIsGameVisible] = useState(false);
 
 
-  function handleClick(action) 
+  function handleClick(action, map) 
   {
     if (action === "Jogar")
     {
@@ -73,6 +74,7 @@ export default function Menu() {
     }
     else if (action === "Iniciar")
     {
+      mapaid = map;
       setIsMapsVisible(false);
       setIsGameVisible(true);
     }
@@ -97,16 +99,16 @@ export default function Menu() {
       {isMapsVisible && (
         <>
             <ul className="MapasRow">
-                <b><Maps opcao= {1} onClick={() => handleClick("Iniciar")}/></b>
-                <b><Maps opcao= {2} onClick={() => handleClick("Iniciar")}/></b>
-                <b><Maps opcao= {3} onClick={() => handleClick("Iniciar")}/></b>
+                <b><Maps opcao= {1} onClick={() => handleClick("Iniciar", 1)}/></b>
+                <b><Maps opcao= {2} onClick={() => handleClick("Iniciar", 2)}/></b>
+                <b><Maps opcao= {3} onClick={() => handleClick("Iniciar", 3)}/></b>
             </ul>
             <ul className="caixaescolhas"><li><Options value="Voltar" onClick={() => handleClick("Voltar")} /></li></ul>
         </>
       )}
       {isGameVisible && (
         <>
-            <GameView/>
+            <GameView mapid={mapaid}/>
         </>
       )}
   </>

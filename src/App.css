@@ -75,11 +75,11 @@ body {
 
 .fundo{
   position: absolute;
-  width: 100vw;
-  height: 100vh;
-  left: 0px;
-  top: 0px;
-  scale: calc(150%);
+  width: 90vw;
+  height: 120vh;
+  left: 95px;
+  top: -90px;
+  scale: calc(130%);
   z-index: -1;
 }
 
@@ -87,43 +87,56 @@ body {
   position: relative;
   top: -2vh;
   left: 0vw;
-  width: 46vw;
-  height: 48vh;
+  width: 480px;
+  height: 480px;
   transform-origin: top left;
+  background-color: burlywood;
+}
+
+:root {
+  --tile-size: 32px;
 }
 
 
 .maploc {
-
-  position: absolute;
-  inset: 0; 
-
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  grid-template-rows: repeat(15, 1fr);
+}
+
+.entities {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .tile {
-  width: 1fr;
-  height: 1fr;
-  background-size: cover;
+  width: var(--tile-size);
+  height: var(--tile-size);
+  background-size: 100% 100%;
   background-repeat: no-repeat;
+  background-position: center;
 }
 
 .tile.wall {
   background: rgb(63, 4, 4);
 }
 
-.tile.floor {
+.tile.box {
   background-image: url("/public/caixas.png");
 }
 
-.tile.box {
-  background: orange;
+.tile.floor {
 }
 
 .tile.player {
-  background-image: url("/public/mago.png");
-  background-position: 0 0;
-
+  position: relative;
+  z-index: 10;
+  background-color: #34495e;
+  border-radius: 50%;
+  transform: scale(0.8); /* Ajusta para o boneco não tocar nas bordas do quadrado */
+  border: 2px solid white;
 }
+
