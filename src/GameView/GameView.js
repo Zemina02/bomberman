@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { usePlayer } from "../Player/Player.js"; // Importa a lógica
 import Player from "../Player/Player.js";
-export const TILE_SIZE = 32;
-
+import { placeBomb, explodeBomb } from "../Bombs/Bombs";
+import { TILE_SIZE } from "../constants";
 
 //le o mapa de um ficheiro de texto e remove caracteres desnecessarios
 async function ReadMaps(map) {
@@ -26,7 +26,7 @@ function RenderMap({ map }) {
   return (
     <>
       {map.map((row, y) =>
-        Array.from(row).map((cell, x) => (
+        row.map((cell, x) => (
           <div key={`${x}-${y}`} className={`tile ${tileMap[cell]}`} />
         ))
       )}
@@ -34,28 +34,29 @@ function RenderMap({ map }) {
   );
 }
 
-// function GameView({mapid}) {
-//   const [map, setMap] = useState([]);
-//   const playerPos = usePlayer(map); // Utilizamos o nosso hook customizado
-
-//   useEffect(() => {ReadMaps(mapid).then(setMap);}, [mapid]);
-
-//   return (
-//     <div className="stage">
-//         <img className="fundo" src="/fundo.png" />
-//         <div className="game-view">
-//             <div>
-//             <RenderMap map={map}/>
-//             {map.length > 0 && <Player pos={playerPos} />}
-//             </div>
-//         </div>
-//     </div>
-//   );
-// }
-
 function GameView({ mapid }) {
   const [map, setMap] = useState([]);
-  const playerPos = usePlayer(map); // Isto já deteta a posição do ⬛
+  const [bombs, setBombs] = useState([]);
+  const { pos: playerPos, direction } = usePlayer(map);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === "Space") {
+        placeBomb({
+          map,
+          bombs,
+          setBombs,
+          playerPos,
+          direction,
+          explodeBomb: (x, y, id) =>
+            explodeBomb({ x, y, id, setMap, setBombs }),
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [map, bombs, playerPos, direction]);
 
   useEffect(() => {
     ReadMaps(mapid).then(setMap);
@@ -69,14 +70,24 @@ function GameView({ mapid }) {
         <section
           className="maploc"
           style={{
-            gridTemplateColumns: `repeat(${map.length}, ${TILE_SIZE}px)`,
-            gridTemplateRows: `repeat(${map.length}, ${TILE_SIZE}px)`,
+            gridTemplateColumns: `repeat(${map[0]?.length || 0}, ${TILE_SIZE}px)`,
+            gridTemplateRows: `repeat(${map.length}, ${TILE_SIZE}px)`,    
           }}
         >
           <RenderMap map={map} />
         </section>
         <div className="entities">
           <Player pos={playerPos} />
+          {bombs.map((b) => (
+            <div
+              key={b.id}
+              className="bomb"
+              style={{
+                left: b.x * TILE_SIZE,
+                top: b.y * TILE_SIZE,
+              }}
+            />
+          ))}
         </div>
       </div>
     </div>
