@@ -3,33 +3,23 @@ import { WALKABLE_TILES, DESTRUCTIBLE_TILE, DIR_OFFSET } from "../constants";
 /**
  * Coloca uma bomba à frente do player
  */
-export function placeBomb({
-  map,
-  bombs,
-  setBombs,
-  playerPos,
-  direction,
-  explodeBomb,
-}) {
-  const offset = DIR_OFFSET[direction];
+export function placeBomb({ map, bombs, setBombs, player, explodeBomb }) {
+  const offset = DIR_OFFSET[player.direction];
   if (!offset) return;
 
-  const x = playerPos.x + offset.x;
-  const y = playerPos.y + offset.y;
+  const x = player.pos.x + offset.x;
+  const y = player.pos.y + offset.y;
 
   const tile = map[y]?.[x];
 
-  // só coloca em chão ou spawn
   if (!WALKABLE_TILES.includes(tile)) return;
-
-  // evita duplicados
   if (bombs.some((b) => b.x === x && b.y === y)) return;
 
   const id = crypto.randomUUID();
 
-  setBombs((prev) => [...prev, { x, y, id }]);
+  setBombs((prev) => [...prev, { x, y, id, ownerId: player.id }]);
 
-  setTimeout(() => explodeBomb(x, y, id), 1000);
+  setTimeout(() => explodeBomb({ x, y, id }), 1000);
 }
 
 /**
@@ -41,12 +31,15 @@ export function explodeBomb({
   id,
   setMap,
   setBombs,
-  playerPosRef,
+  playersRef,
   takeDamage,
   setExplosions,
 }) {
-  const playerPos = playerPosRef.current;
+
+  const players = playersRef.current;
   
+  if (!players) return; // proteção extra
+
   const directions = [
     { x: 0, y: 0 },
     { x: 1, y: 0 },
@@ -61,14 +54,17 @@ export function explodeBomb({
     id: crypto.randomUUID(),
   }));
 
-  //Dano
-  const hitPlayer = explosionTiles.some(
-    (e) => e.x === playerPos.x && e.y === playerPos.y
-  );
+  // 💥 DANO A TODOS OS JOGADORES ATINGIDOS
 
-  if (hitPlayer) takeDamage(1);
+  players.forEach((p) => {
+    const hit = explosionTiles.some((e) => e.x === p.pos.x && e.y === p.pos.y);
 
-  //Mostrar explosão
+    if (hit) {
+      takeDamage(p.id);
+    }
+  });
+
+  // Mostrar explosão
   setExplosions((prev) => [...prev, ...explosionTiles]);
 
   // Atualizar mapa
@@ -76,7 +72,7 @@ export function explodeBomb({
     const newMap = prevMap.map((row) => [...row]);
 
     explosionTiles.forEach(({ x, y }) => {
-      if (newMap[y]?.[x] === "⬜") {
+      if (newMap[y]?.[x] === DESTRUCTIBLE_TILE) {
         newMap[y][x] = "🟥";
       }
     });
@@ -84,12 +80,13 @@ export function explodeBomb({
     return newMap;
   });
 
-  // ⏱Remover explosão
+  // Remover explosão
   setTimeout(() => {
     setExplosions((prev) =>
       prev.filter((e) => !explosionTiles.some((et) => et.id === e.id))
     );
   }, 300);
 
+  // Remover bomba
   setBombs((prev) => prev.filter((b) => b.id !== id));
 }

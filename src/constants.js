@@ -2,6 +2,7 @@ export const TILE_SIZE = 32;
 
 export const WALKABLE_TILES = ["🟥", "⬛"];
 export const DESTRUCTIBLE_TILE = "⬜";
+export const SPAWN_TILE = "⬛";
 
 export const DIR_OFFSET = {
   up: { x: 0, y: -1 },

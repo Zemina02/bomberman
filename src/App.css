@@ -124,6 +124,9 @@ body {
 .tile.floor {
 }
 
+.tile.spawn {
+}
+
 .entities {
   position: absolute;
   top: 0;
@@ -135,7 +138,7 @@ body {
 
 
 .tile.player {
-  position: relative;
+  position: absolute;
   z-index: 10;
   background-color: #34495e;
   border-radius: 50%;

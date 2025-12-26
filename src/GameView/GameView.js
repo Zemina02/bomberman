@@ -19,7 +19,7 @@ const tileMap = {
   "🟦": "wall",
   "⬜": "box",
   "🟥": "floor",
-  "⬛": "floor", // O jogador começa numa célula de chão
+  "⬛": "spawn", // O jogador começa numa célula de chão
 };
 
 //faz a distribuiçao dos tiles do mapa menos o jogador
@@ -35,36 +35,62 @@ function RenderMap({ map }) {
   );
 }
 
-function GameView({ mapid }) {
+function GameView({ mapid, numPlayers }) {
   const [map, setMap] = useState([]);
   const [bombs, setBombs] = useState([]);
-  const { pos: playerPos, direction } = usePlayer(map);
-  const { health, takeDamage, isGameOver } = useHealth(3);
+  const players = usePlayer(map, numPlayers);
+  const { healths, takeDamage, isGameOver } = useHealth(numPlayers, 3);
   const [explosions, setExplosions] = useState([]);
-  const playerPosRef = useRef(playerPos);
+  const playersRef = useRef(players);
 
   useEffect(() => {
-    playerPosRef.current = playerPos;
-  }, [playerPos]);
+    playersRef.current = players;  // Atualiza a referência dos jogadores(posição)
+  }, [players]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (isGameOver) return; // Bloqueia ações se morreu
-      if (e.code === "Space") {
+      if (isGameOver) return;
+
+      // Player 1
+      if (e.code === "Space" && players[0]) {
+        const player = players[0];
+
         placeBomb({
           map,
           bombs,
           setBombs,
-          playerPos,
-          direction,
-          explodeBomb: (x, y, id) =>
+          player,
+          explodeBomb: ({ x, y, id }) =>
             explodeBomb({
               x,
               y,
               id,
               setMap,
               setBombs,
-              playerPosRef,
+              playersRef,
+              takeDamage,
+              setExplosions,
+            }),
+        });
+      }
+
+      // Player 2
+      if (e.code === "ShiftLeft" && numPlayers > 1 && players[1]) {
+        const player = players[1];
+
+        placeBomb({
+          map,
+          bombs,
+          setBombs,
+          player,
+          explodeBomb: ({ x, y, id }) =>
+            explodeBomb({
+              x,
+              y,
+              id,
+              setMap,
+              setBombs,
+              playersRef,
               takeDamage,
               setExplosions,
             }),
@@ -74,7 +100,7 @@ function GameView({ mapid }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [map, bombs, playerPos, direction, isGameOver, takeDamage]);
+  }, [map, bombs, players, numPlayers, isGameOver, takeDamage]);
 
   useEffect(() => {
     ReadMaps(mapid).then(setMap);
@@ -84,7 +110,12 @@ function GameView({ mapid }) {
     <div className="stage">
       <img className="fundo" src="/fundo.png" />
       <div className="hud">
-        <div className="health">Vida: {health}</div>
+        {healths.map((p) => (
+          <div key={p.id}>
+            Jogador {p.id + 1}: ❤️ {p.health}
+          </div>
+        ))}
+
         {isGameOver && <div className="game-over">Game Over</div>}
       </div>
 
@@ -102,7 +133,9 @@ function GameView({ mapid }) {
           <RenderMap map={map} />
         </section>
         <div className="entities">
-          <Player pos={playerPos} />
+          {players.map((p) => (
+            <Player key={p.id} pos={p.pos} />
+          ))}
           {bombs.map((b) => (
             <div
               key={b.id}

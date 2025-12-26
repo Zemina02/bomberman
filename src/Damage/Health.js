@@ -1,24 +1,46 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
-export function useHealth(initialHealth = 3) {
-  const [health, setHealth] = useState(initialHealth);
-  const [isGameOver, setIsGameOver] = useState(false);
+export function useHealth(numPlayers, initialHealth = 3) {
+  const [healths, setHealths] = useState([]);
 
-  const takeDamage = useCallback((amount = 1) => {
-    setHealth((prev) => {
-      const newHealth = prev - amount;
-      if (newHealth <= 0) {
-        setIsGameOver(true);
-        return 0;
-      }
-      return newHealth;
-    });
+  // Inicializar vidas
+  useEffect(() => {
+    const initial = Array.from({ length: numPlayers }, (_, i) => ({
+      id: i,
+      health: initialHealth,
+      isDead: false,
+    }));
+    setHealths(initial);
+  }, [numPlayers, initialHealth]);
+
+  // Dano por jogador
+  const takeDamage = useCallback((playerId, amount = 1) => {
+    setHealths((prev) =>
+      prev.map((p) => {
+        if (p.id !== playerId || p.isDead) return p;
+
+        const newHealth = p.health - amount;
+
+        return {
+          ...p,
+          health: Math.max(0, newHealth),
+          isDead: newHealth <= 0,
+        };
+      })
+    );
   }, []);
 
-  const resetHealth = () => {
-    setHealth(initialHealth);
-    setIsGameOver(false);
-  };
+  const resetHealth = useCallback(() => {
+    setHealths((prev) =>
+      prev.map((p) => ({
+        ...p,
+        health: initialHealth,
+        isDead: false,
+      }))
+    );
+  }, [initialHealth]);
 
-  return { health, takeDamage, isGameOver, resetHealth };
+  const isGameOver = healths.every((p) => p.isDead);
+
+  return { healths, takeDamage, isGameOver, resetHealth };
 }
