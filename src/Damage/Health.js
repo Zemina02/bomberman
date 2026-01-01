@@ -40,7 +40,8 @@ export function useHealth(numPlayers, initialHealth = 3) {
     );
   }, [initialHealth]);
 
-  const isGameOver = healths.every((p) => p.isDead);
+  // ✅ CORRIGIDO: Verificar se há jogadores E se todos estão mortos
+  const isGameOver = healths.length > 0 && healths.every((p) => p.isDead);
 
   return { healths, takeDamage, isGameOver, resetHealth };
 }

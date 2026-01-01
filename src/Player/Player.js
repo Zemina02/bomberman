@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TILE_SIZE } from "../constants";
+import { TILE_SIZE, WALKABLE_TILES } from "../constants";
 import { SPAWN_TILE } from "../constants";
+import { spriteSheet } from "../Animations/characters";
+
 
 function getSpawnPoints(map) {
   const spawns = [];
@@ -12,7 +14,7 @@ function getSpawnPoints(map) {
       }
     });
   });
-  console.log("Spawns encontrados:", spawns);//deteta spawns corretamente
+  console.log("Spawns encontrados:", spawns);
   return spawns;
 }
 
@@ -36,6 +38,7 @@ export function usePlayer(map, numPlayers) {
       id: i,
       pos: spawnPoints[i],
       direction: "down",
+      //isMoving: false,
     }));
 
     setPlayers(initialPlayers);
@@ -52,11 +55,12 @@ export function usePlayer(map, numPlayers) {
           const nx = p.pos.x + dx;
           const ny = p.pos.y + dy;
 
-          if (["🟥", "⬛", SPAWN_TILE].includes(map[ny]?.[nx])) {
+          if (WALKABLE_TILES.includes(map[ny]?.[nx])) {
             return {
               ...p,
               pos: { x: nx, y: ny },
               direction: dir,
+              //isMoving: true,
             };
           }
 
@@ -90,13 +94,14 @@ export function usePlayer(map, numPlayers) {
   return players;
 }
 
-export default function Player({ pos }) {
+export default function Player({ pos, direction }) {
   return (
     <div
       className="tile player"
       style={{
         left: pos.x * TILE_SIZE,
         top: pos.y * TILE_SIZE,
+        ...spriteSheet(direction),
       }}
     />
   );

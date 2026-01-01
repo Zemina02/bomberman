@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from "react";
-import { usePlayer } from "../Player/Player.js"; // Importa a lógica
+import { usePlayer } from "../Player/Player.js";
 import Player from "../Player/Player.js";
+import { useEnemy } from "../Enemy/Enemy.js";
+import Enemy from "../Enemy/Enemy.js";
 import { placeBomb, explodeBomb } from "../Bombs/Bombs";
 import { TILE_SIZE } from "../constants";
 import { useHealth } from "../Damage/Health";
 
-//le o mapa de um ficheiro de texto e remove caracteres desnecessarios
 async function ReadMaps(map) {
   const response = await fetch("/nivel_" + map + ".txt");
   const text = await response.text();
@@ -19,10 +20,9 @@ const tileMap = {
   "🟦": "wall",
   "⬜": "box",
   "🟥": "floor",
-  "⬛": "spawn", // O jogador começa numa célula de chão
+  "⬛": "spawn",
 };
 
-//faz a distribuiçao dos tiles do mapa menos o jogador
 function RenderMap({ map }) {
   return (
     <>
@@ -35,23 +35,51 @@ function RenderMap({ map }) {
   );
 }
 
-function GameView({ mapid, numPlayers }) {
+function GameView({ mapid, numPlayers, onGameOver }) {
   const [map, setMap] = useState([]);
   const [bombs, setBombs] = useState([]);
   const players = usePlayer(map, numPlayers);
+  const enemy = useEnemy(map, players, bombs);
   const { healths, takeDamage, isGameOver } = useHealth(numPlayers, 3);
   const [explosions, setExplosions] = useState([]);
   const playersRef = useRef(players);
+  const lastEnemyDamageRef = useRef({});
 
   useEffect(() => {
-    playersRef.current = players;  // Atualiza a referência dos jogadores(posição)
+    playersRef.current = players;
   }, [players]);
 
+  // ✅ Game Over - APENAS quando isGameOver for TRUE
+  useEffect(() => {
+    if (isGameOver && onGameOver) {
+      console.log("🎮 Game Over acionado!");
+      onGameOver();
+    }
+  }, [isGameOver, onGameOver]);
+
+  // ✅ COLISÃO: Inimigo toca jogador
+  useEffect(() => {
+    if (!enemy || !players.length) return;
+
+    players.forEach((player) => {
+      if (player.pos.x === enemy.x && player.pos.y === enemy.y) {
+        const now = Date.now();
+        const lastDamageTime = lastEnemyDamageRef.current[player.id] || 0;
+
+        if (now - lastDamageTime > 1000) {
+          takeDamage(player.id);
+          lastEnemyDamageRef.current[player.id] = now;
+          console.log(`⚠️ Jogador ${player.id + 1} levou dano do inimigo!`);
+        }
+      }
+    });
+  }, [enemy, players, takeDamage]);
+
+  // ✅ ENTRADA: Colocar bombas
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isGameOver) return;
 
-      // Player 1
       if (e.code === "Space" && players[0]) {
         const player = players[0];
 
@@ -74,7 +102,6 @@ function GameView({ mapid, numPlayers }) {
         });
       }
 
-      // Player 2
       if (e.code === "ShiftLeft" && numPlayers > 1 && players[1]) {
         const player = players[1];
 
@@ -108,7 +135,7 @@ function GameView({ mapid, numPlayers }) {
 
   return (
     <div className="stage">
-      <img className="fundo" src="/fundo.png" />
+      <img className="fundo" src="/fundo.png" alt="fundo" />
       <div className="hud">
         {healths.map((p) => (
           <div key={p.id}>
@@ -120,7 +147,6 @@ function GameView({ mapid, numPlayers }) {
       </div>
 
       <div className="game-view">
-        {/* O Player e o RenderMap partilham o mesmo contentor de grid */}
         <section
           className="maploc"
           style={{
@@ -134,8 +160,11 @@ function GameView({ mapid, numPlayers }) {
         </section>
         <div className="entities">
           {players.map((p) => (
-            <Player key={p.id} pos={p.pos} />
+            <Player key={p.id} pos={p.pos} direction={p.direction} />
           ))}
+
+          {enemy && <Enemy pos={enemy} />}
+
           {bombs.map((b) => (
             <div
               key={b.id}
@@ -146,6 +175,7 @@ function GameView({ mapid, numPlayers }) {
               }}
             />
           ))}
+
           {explosions.map((e) => (
             <div
               key={e.id}

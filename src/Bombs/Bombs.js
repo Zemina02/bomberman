@@ -34,18 +34,20 @@ export function explodeBomb({
   playersRef,
   takeDamage,
   setExplosions,
+  enemy, // ✅ NEW: Receber o inimigo
+  setEnemy, // ✅ NEW: Função para eliminar o inimigo
 }) {
 
   const players = playersRef.current;
   
-  if (!players) return; // proteção extra
+  if (!players) return;
 
   const directions = [
-    { x: 0, y: 0 },
-    { x: 1, y: 0 },
-    { x: -1, y: 0 },
-    { x: 0, y: 1 },
-    { x: 0, y: -1 },
+    { x: 0, y: 0 }, // Centro (onde a bomba está)
+    { x: 1, y: 0 }, // Direita
+    { x: -1, y: 0 }, // Esquerda
+    { x: 0, y: 1 }, // Baixo
+    { x: 0, y: -1 }, // Cima
   ];
 
   const explosionTiles = directions.map((d) => ({
@@ -55,7 +57,6 @@ export function explodeBomb({
   }));
 
   // 💥 DANO A TODOS OS JOGADORES ATINGIDOS
-
   players.forEach((p) => {
     const hit = explosionTiles.some((e) => e.x === p.pos.x && e.y === p.pos.y);
 
@@ -63,6 +64,16 @@ export function explodeBomb({
       takeDamage(p.id);
     }
   });
+
+  // ✅ DANO AO INIMIGO (APENAS SE ESTIVER EXATAMENTE NO RAIO)
+  if (enemy) {
+    const enemyHit = explosionTiles.some((e) => e.x === enemy.x && e.y === enemy.y);
+
+    if (enemyHit) {
+      console.log("💣 Inimigo atingido pela explosão!");
+      setEnemy(null); // ✅ Elimina o inimigo
+    }
+  }
 
   // Mostrar explosão
   setExplosions((prev) => [...prev, ...explosionTiles]);
@@ -80,7 +91,7 @@ export function explodeBomb({
     return newMap;
   });
 
-  // Remover explosão
+  // Remover explosão após 300ms
   setTimeout(() => {
     setExplosions((prev) =>
       prev.filter((e) => !explosionTiles.some((et) => et.id === e.id))
