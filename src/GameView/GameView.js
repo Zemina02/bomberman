@@ -3,9 +3,17 @@ import { usePlayer } from "../Player/Player.js";
 import Player from "../Player/Player.js";
 import { useEnemy } from "../Enemy/Enemy.js";
 import Enemy from "../Enemy/Enemy.js";
-import { placeBomb, explodeBomb } from "../Bombs/Bombs";
-import { TILE_SIZE } from "../constants";
-import { useHealth } from "../Damage/Health";
+import { placeBomb, explodeBomb } from "../Bombs/Bombs.js";
+import { TILE_SIZE } from "../constants.js";
+import { useHealth } from "../Damage/Health.js";
+
+import { SoundManager } from "../Sound/SoundManager";
+import { useScore} from "../Score/ScoreManager.js";
+import {useParticles, Particle} from "../Particles/ParticleSystem.js";
+import { DIFFICULTY_SETTINGS } from "../LevelManager/LevelManager.js";
+import { VictoryScreen } from "../Victory/VictoryScreen.js";
+
+
 
 async function ReadMaps(map) {
   const response = await fetch("/nivel_" + map + ".txt");
@@ -39,11 +47,25 @@ function GameView({ mapid, numPlayers, onGameOver }) {
   const [map, setMap] = useState([]);
   const [bombs, setBombs] = useState([]);
   const players = usePlayer(map, numPlayers);
-  const enemy = useEnemy(map, players, bombs);
+  const [enemy, setEnemy] = useEnemy(map, players, bombs);
   const { healths, takeDamage, isGameOver } = useHealth(numPlayers, 3);
   const [explosions, setExplosions] = useState([]);
   const playersRef = useRef(players);
   const lastEnemyDamageRef = useRef({});
+
+  const difficulty = DIFFICULTY_SETTINGS[mapid];
+  const scoreManager = useScore(mapid, difficulty.timeLimit);
+  const { particles, createExplosion } = useParticles();
+  const [showVictory, setShowVictory] = useState(false);
+  const [levelComplete, setLevelComplete] = useState(false);  
+
+  useEffect(() => {
+  SoundManager.bgm();
+  
+  return () => {
+    // Parar música se tiver método (opcional)
+  };
+}, []); 
 
   useEffect(() => {
     playersRef.current = players;
@@ -56,6 +78,18 @@ function GameView({ mapid, numPlayers, onGameOver }) {
       onGameOver();
     }
   }, [isGameOver, onGameOver]);
+
+  useEffect(() => {
+    if (isGameOver || showVictory ) return;
+
+    const timer = setInterval(() => {
+      scoreManager.incrementTime();
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isGameOver, showVictory]);
+
+
 
   // ✅ COLISÃO: Inimigo toca jogador
   useEffect(() => {
@@ -71,9 +105,22 @@ function GameView({ mapid, numPlayers, onGameOver }) {
           lastEnemyDamageRef.current[player.id] = now;
           console.log(`⚠️ Jogador ${player.id + 1} levou dano do inimigo!`);
         }
-      }
+      } 
     });
   }, [enemy, players, takeDamage]);
+
+  useEffect(() => {
+    // Se não há inimigo e ainda há jogadores vivos
+    if (!enemy && players.length > 0 && !levelComplete) {
+      const hasAlivePlayers = healths.some(h => !h.isDead);
+      
+      if (hasAlivePlayers) {
+        console.log("🎉 VITÓRIA! Nível completo!");
+        setLevelComplete(true);
+        setShowVictory(true);
+      }
+    }
+  }, [enemy, players, levelComplete, healths]);
 
   // ✅ ENTRADA: Colocar bombas
   useEffect(() => {
@@ -83,6 +130,8 @@ function GameView({ mapid, numPlayers, onGameOver }) {
       if (e.code === "Space" && players[0]) {
         const player = players[0];
 
+        SoundManager.bomb();
+
         placeBomb({
           map,
           bombs,
@@ -98,6 +147,10 @@ function GameView({ mapid, numPlayers, onGameOver }) {
               playersRef,
               takeDamage,
               setExplosions,
+              enemy,
+              setEnemy,
+              scoreManager,
+              createExplosion,
             }),
         });
       }
@@ -105,6 +158,8 @@ function GameView({ mapid, numPlayers, onGameOver }) {
       if (e.code === "ShiftLeft" && numPlayers > 1 && players[1]) {
         const player = players[1];
 
+        SoundManager.bomb();
+
         placeBomb({
           map,
           bombs,
@@ -120,6 +175,10 @@ function GameView({ mapid, numPlayers, onGameOver }) {
               playersRef,
               takeDamage,
               setExplosions,
+              enemy,
+              setEnemy,
+              scoreManager,
+              createExplosion,
             }),
         });
       }
@@ -130,18 +189,69 @@ function GameView({ mapid, numPlayers, onGameOver }) {
   }, [map, bombs, players, numPlayers, isGameOver, takeDamage]);
 
   useEffect(() => {
-    ReadMaps(mapid).then(setMap);
+    ReadMaps(mapid).then((newMap) => {
+      setMap(newMap);
+      scoreManager.resetForNewLevel(mapid, difficulty.timeLimit);
+    });
   }, [mapid]);
+
+  if (showVictory && levelComplete) {
+    return (
+      <div className="stage">
+        <VictoryScreen
+          level={scoreManager.level}
+          score={scoreManager.score}
+          timeRemaining={scoreManager.timeRemaining}
+          enemiesKilled={scoreManager.enemiesKilled}
+          onNextLevel={() => {
+            setShowVictory(false);
+            setLevelComplete(false);
+            // Component vai rerender com novo mapid
+          }}
+          onMainMenu={() => {
+            onGameOver(scoreManager.score);
+          }}
+        />
+      </div>
+    );  
+  }
 
   return (
     <div className="stage">
       <img className="fundo" src="/fundo.png" alt="fundo" />
-      <div className="hud">
-        {healths.map((p) => (
-          <div key={p.id}>
-            Jogador {p.id + 1}: ❤️ {p.health}
+      <div className={`hud ${scoreManager.flashEffect ? 'flash-damage' : ''}`}>
+        {/* Informações de Jogo */}
+        <div style={{ 
+          marginBottom: "15px", 
+          borderBottom: "1px solid #ffd700", 
+          paddingBottom: "10px",
+          fontSize: "14px"
+        }}>
+          <div>🎮 Nível: {scoreManager.level}</div>
+          <div>⭐ Pontos: {scoreManager.score}</div>
+          <div style={{
+            color: scoreManager.timeRemaining <= 10 ? '#ff4444' : '#ffd700',
+            fontWeight: scoreManager.timeRemaining <= 10 ? 'bold' : 'normal'
+          }}>
+            ⏱️ Tempo: {scoreManager.timeRemaining}s
           </div>
-        ))}
+          <div>👾 Inimigos: {scoreManager.enemiesKilled}</div>  
+        </div>
+
+        {/* Vidas dos Jogadores */}
+        <div>
+          {healths.map((p) => (
+            <div 
+              key={p.id}
+              style={{
+                opacity: p.isDead ? 0.5 : 1,
+                color: scoreManager.lastDamagedPlayer === p.id ? '#ff4444' : '#ffd700'
+              }}
+            >
+              Jogador {p.id + 1}: ❤️ {p.health}
+            </div>
+          ))}
+        </div>
 
         {isGameOver && <div className="game-over">Game Over</div>}
       </div>
@@ -185,6 +295,10 @@ function GameView({ mapid, numPlayers, onGameOver }) {
                 top: e.y * TILE_SIZE,
               }}
             />
+          ))}
+          {/* ✅ ADICIONAR: Partículas */}
+          {particles.map((p) => (
+            <Particle key={p.id} x={p.x} y={p.y} id={p.id} />
           ))}
         </div>
       </div>

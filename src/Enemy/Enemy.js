@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { TILE_SIZE } from "../constants";
+import { TILE_SIZE } from "../constants.js";
 
 export function useEnemy(map, players, bombs = []) {
   const [enemy, setEnemy] = useState(null);
@@ -141,9 +141,14 @@ export function useEnemy(map, players, bombs = []) {
     setDirection(randomMove.dir);
   };
 
-  // Inicializar inimigo
+ // DEPOIS (código novo)
   useEffect(() => {
-    if (!map || map.length === 0) return;
+   if (!map || map.length === 0) return;
+
+  // ✅ IMPORTANTE: Inicializar apenas uma vez
+  // Se já existe inimigo, não reinicializa
+  setEnemy((prevEnemy) => {
+    if (prevEnemy) return prevEnemy; // Não reinicializa se já existe
 
     let enemyX = 1;
     let enemyY = 1;
@@ -169,9 +174,11 @@ export function useEnemy(map, players, bombs = []) {
       enemyY = Math.max(1, Math.min(map.length - 2, 5));
     }
 
-    setEnemy({ id: "enemy1", x: enemyX, y: enemyY });
-    setDirection("right");
-  }, [map]);
+    return { id: "enemy1", x: enemyX, y: enemyY };
+  });
+
+  setDirection("right");
+}, [map]); // ✅ IMPORTANTE: Dependency array vazio para inicializar apenas uma vez
 
   useEffect(() => {
     if (!enemy || !map || map.length === 0) return;
@@ -220,7 +227,7 @@ export function useEnemy(map, players, bombs = []) {
     return () => clearInterval(gameLoop);
   }, [direction, enemy, map, bombs]);
 
-  return enemy;
+  return [enemy, setEnemy];
 }
 
 function Enemy({ pos }) {

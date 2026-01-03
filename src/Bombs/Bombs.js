@@ -1,4 +1,5 @@
 import { WALKABLE_TILES, DESTRUCTIBLE_TILE, DIR_OFFSET } from "../constants";
+import { SoundManager } from "../Sound/SoundManager";
 
 /**
  * Coloca uma bomba à frente do player
@@ -34,13 +35,18 @@ export function explodeBomb({
   playersRef,
   takeDamage,
   setExplosions,
-  enemy, // ✅ NEW: Receber o inimigo
-  setEnemy, // ✅ NEW: Função para eliminar o inimigo
+  enemy, 
+  setEnemy,
+  scoreManager, 
+  createExplosion, 
 }) {
 
   const players = playersRef.current;
   
   if (!players) return;
+
+  SoundManager.explosion();
+  createExplosion(x, y);
 
   const directions = [
     { x: 0, y: 0 }, // Centro (onde a bomba está)
@@ -71,6 +77,7 @@ export function explodeBomb({
 
     if (enemyHit) {
       console.log("💣 Inimigo atingido pela explosão!");
+      scoreManager.killEnemy(); // +100 pontos
       setEnemy(null); // ✅ Elimina o inimigo
     }
   }
@@ -85,6 +92,7 @@ export function explodeBomb({
     explosionTiles.forEach(({ x, y }) => {
       if (newMap[y]?.[x] === DESTRUCTIBLE_TILE) {
         newMap[y][x] = "🟥";
+        scoreManager.destroyBox(); // +10 pontos  
       }
     });
 

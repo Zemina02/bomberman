@@ -332,3 +332,31 @@ body {
     opacity: 0;
   }
 }
+
+/* ✅ ADICIONAR: Flash ao receber dano */
+.hud.flash-damage {
+  animation: damageFlash 0.4s ease-in-out;
+}
+
+@keyframes damageFlash {
+  0%, 100% {
+    background-color: rgba(0, 0, 0, 0.85);
+  }
+  50% {
+    background-color: rgba(255, 0, 0, 0.4);
+  }
+}
+
+/* Player com dano */
+.tile.player.damaged {
+  animation: playerFlash 0.4s ease-in-out;
+}
+
+@keyframes playerFlash {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0.4;
+  }
+}

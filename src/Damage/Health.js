@@ -1,7 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
-
+import { SoundManager } from "../Sound/SoundManager";
+  
 export function useHealth(numPlayers, initialHealth = 3) {
   const [healths, setHealths] = useState([]);
+  const [lastDamagedPlayer, setLastDamagedPlayer] = useState(null);
+  const [flashEffect, setFlashEffect] = useState(false);
 
   // Inicializar vidas
   useEffect(() => {
@@ -15,6 +18,16 @@ export function useHealth(numPlayers, initialHealth = 3) {
 
   // Dano por jogador
   const takeDamage = useCallback((playerId, amount = 1) => {
+    SoundManager.damage();
+    
+    // Trigger flash effect
+    setFlashEffect(true);
+    setTimeout(() => setFlashEffect(false), 400);
+    
+    // Track which player was damaged
+    setLastDamagedPlayer(playerId);
+    setTimeout(() => setLastDamagedPlayer(null), 400);
+
     setHealths((prev) =>
       prev.map((p) => {
         if (p.id !== playerId || p.isDead) return p;
@@ -40,8 +53,15 @@ export function useHealth(numPlayers, initialHealth = 3) {
     );
   }, [initialHealth]);
 
-  // ✅ CORRIGIDO: Verificar se há jogadores E se todos estão mortos
+  // Verificar se há jogadores E se todos estão mortos
   const isGameOver = healths.length > 0 && healths.every((p) => p.isDead);
 
-  return { healths, takeDamage, isGameOver, resetHealth };
+  return { 
+    healths, 
+    takeDamage, 
+    isGameOver, 
+    resetHealth,
+    lastDamagedPlayer,
+    flashEffect
+  };
 }
