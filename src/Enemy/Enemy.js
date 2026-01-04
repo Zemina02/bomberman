@@ -233,13 +233,16 @@ export function useEnemy(map, players, bombs = []) {
 function Enemy({ pos }) {
   return (
     <div
-      className="tile player"
       style={{
+        position: "absolute",
         left: pos.x * TILE_SIZE,
         top: pos.y * TILE_SIZE,
-        backgroundColor: "#FF6B6B",
-        borderColor: "#C92A2A",
-        boxShadow: "0 0 8px rgba(255, 107, 107, 0.8)",
+        width: TILE_SIZE,
+        height: TILE_SIZE,
+        fontSize: TILE_SIZE * 0.8,
+        lineHeight: TILE_SIZE + "px",
+        textAlign: "center",
+        pointerEvents: "none",
       }}
       title="👾 Enemy"
     >

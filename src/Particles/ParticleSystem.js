@@ -34,13 +34,21 @@ export function Particle({ x, y, id }) {
 export function useParticles() {
   const [particles, setParticles] = useState([]);
 
+   // ✅ CORRETO - Partículas dispersas
   const createExplosion = (x, y) => {
-    const newParticles = Array.from({ length: 12 }, (_, i) => ({
+   const newParticles = Array.from({ length: 12 }, (_, i) => {
+    // Espalha as partículas em volta (como explosão radial)
+    const angle = (i / 12) * Math.PI * 2;
+    const distance = 0.5 + Math.random() * 1.5;
+    const offsetX = Math.cos(angle) * distance;
+    const offsetY = Math.sin(angle) * distance;
+    
+    return {
       id: `${x}-${y}-${i}-${Date.now()}`,
-      x: x,
-      y: y,
-    }));
-
+      x: x + offsetX,
+      y: y + offsetY,
+    };
+  });
     setParticles((prev) => [...prev, ...newParticles]);
 
     // Remove after animation

@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { TILE_SIZE, WALKABLE_TILES } from "../constants";
-import { SPAWN_TILE } from "../constants";
-import { spriteSheet } from "../Animations/characters";
-
+import { TILE_SIZE, WALKABLE_TILES } from "../constants.js";
+import { SPAWN_TILE } from "../constants.js";
+import { spriteSheet } from "../Animations/characters.js";
 
 function getSpawnPoints(map) {
   const spawns = [];
@@ -18,14 +17,26 @@ function getSpawnPoints(map) {
   return spawns;
 }
 
-export function usePlayer(map, numPlayers) {
+export function usePlayer(map, numPlayers, resetKey = 0) { // ✅ Recebe resetKey
   const [players, setPlayers] = useState([]);
   const initializedRef = useRef(false);
+  const lastResetKeyRef = useRef(resetKey); // ✅ NOVO: Rastreia última reset key
 
   // SPAWN
   useEffect(() => {
     if (!map.length) return;
-    if (initializedRef.current) return;
+    
+    // ✅ NOVO: Se reset key mudou, reinicializa
+    if (resetKey !== lastResetKeyRef.current) {
+      console.log("🔄 Reset key mudou! Reinicializando players...");
+      initializedRef.current = false;
+      lastResetKeyRef.current = resetKey;
+    }
+    
+    // ✅ Se já foi inicializado, NÃO reinicializa novamente
+    if (initializedRef.current) {
+      return;
+    }
 
     const spawnPoints = getSpawnPoints(map);
 
@@ -38,12 +49,11 @@ export function usePlayer(map, numPlayers) {
       id: i,
       pos: spawnPoints[i],
       direction: "down",
-      //isMoving: false,
     }));
 
     setPlayers(initialPlayers);
     initializedRef.current = true;
-  }, [map, numPlayers]);
+  }, [map, numPlayers, resetKey]); // ✅ Adiciona resetKey nas dependências
 
   // MOVIMENTO
   const movePlayer = useCallback(
@@ -60,7 +70,6 @@ export function usePlayer(map, numPlayers) {
               ...p,
               pos: { x: nx, y: ny },
               direction: dir,
-              //isMoving: true,
             };
           }
 

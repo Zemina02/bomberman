@@ -13,7 +13,8 @@ import {useParticles, Particle} from "../Particles/ParticleSystem.js";
 import { DIFFICULTY_SETTINGS } from "../LevelManager/LevelManager.js";
 import { VictoryScreen } from "../Victory/VictoryScreen.js";
 
-
+import { TimeUpScreen } from "../TimeUp/TimeUpScreen.js";
+import { TwoPlayerVictoryScreen } from "../TwoPlayers/TwoPlayerVictoryScreen.js";
 
 async function ReadMaps(map) {
   const response = await fetch("/nivel_" + map + ".txt");
@@ -46,18 +47,23 @@ function RenderMap({ map }) {
 function GameView({ mapid, numPlayers, onGameOver }) {
   const [map, setMap] = useState([]);
   const [bombs, setBombs] = useState([]);
-  const players = usePlayer(map, numPlayers);
+  const [playerResetKey, setPlayerResetKey] = useState(0);
+  const players = usePlayer(map, numPlayers, playerResetKey);
   const [enemy, setEnemy] = useEnemy(map, players, bombs);
-  const { healths, takeDamage, isGameOver } = useHealth(numPlayers, 3);
+  // ✅ CORRIGIDO: Adiciona resetHealth ao destructuring
+  const { healths, takeDamage, isGameOver, flashEffect, lastDamagedPlayer, deadPlayers, resetHealth } = useHealth(numPlayers, 3);
   const [explosions, setExplosions] = useState([]);
   const playersRef = useRef(players);
   const lastEnemyDamageRef = useRef({});
+  const resetTrackerRef = useRef({});
 
   const difficulty = DIFFICULTY_SETTINGS[mapid];
   const scoreManager = useScore(mapid, difficulty.timeLimit);
   const { particles, createExplosion } = useParticles();
   const [showVictory, setShowVictory] = useState(false);
-  const [levelComplete, setLevelComplete] = useState(false);  
+  const [levelComplete, setLevelComplete] = useState(false);
+  const [gameState, setGameState] = useState("playing");
+  const [blockVictory, setBlockVictory] = useState(false);
 
   useEffect(() => {
   SoundManager.bgm();
@@ -71,25 +77,64 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     playersRef.current = players;
   }, [players]);
 
-  // ✅ Game Over - APENAS quando isGameOver for TRUE
+  // ✅ NOVO: Quando mapid muda (próximo nível), reseta o gameState e tudo
+  useEffect(() => {
+    setGameState("playing");
+    setShowVictory(false);
+    setLevelComplete(false);
+    resetHealth(); // ✅ Reseta as vidas também
+    setPlayerResetKey(prev => prev + 1); // ✅ Reseta os players
+    resetTrackerRef.current = {}; // Reseta o tracker do mapa
+  }, [mapid, resetHealth]);
+
+  // ✅ Game Over com detecção de vencedor (2 jogadores)
   useEffect(() => {
     if (isGameOver && onGameOver) {
       console.log("🎮 Game Over acionado!");
-      onGameOver();
+      
+      // Se são 2 jogadores, mostra quem ganhou
+      if (numPlayers === 2) {
+        // Determina qual jogador sobreviveu (não tem isDead = true)
+        const survivor = healths.find((p) => !p.isDead);
+        
+        if (survivor) {
+          console.log(`🏆 Jogador ${survivor.id + 1} ganhou!`);
+          // Passa o vencedor para main.js
+          onGameOver(scoreManager.score, null, `player${survivor.id + 1}`);
+        } else {
+          // Ambos mortos ao mesmo tempo (improvável)
+          onGameOver(scoreManager.score, null, "tie");
+        }
+      } else {
+        // 1 jogador: Game Over normal
+        onGameOver(scoreManager.score);
+      }
     }
-  }, [isGameOver, onGameOver]);
+  }, [isGameOver, onGameOver, numPlayers, healths, scoreManager.score]);
 
   useEffect(() => {
-    if (isGameOver || showVictory ) return;
+    if (isGameOver || showVictory || gameState !== "playing") return;
 
     const timer = setInterval(() => {
       scoreManager.incrementTime();
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isGameOver, showVictory]);
+  }, [isGameOver, showVictory, gameState]);
 
-
+  // ⏰ Verificar se tempo acabou
+  useEffect(() => {
+    if (scoreManager.isTimeUp && gameState === "playing") {
+      // Tempo esgotou
+      if (numPlayers === 1) {
+        // 1 jogador: mostrar Time Up
+        setGameState("timeup");
+      } else {
+        // 2 jogadores: mostrar resultado
+        setGameState("twoplayer");
+      }
+    }
+  }, [scoreManager.isTimeUp, gameState, numPlayers]);
 
   // ✅ COLISÃO: Inimigo toca jogador
   useEffect(() => {
@@ -109,18 +154,22 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     });
   }, [enemy, players, takeDamage]);
 
+  // ✅ VITÓRIA COM DELAY
   useEffect(() => {
-    // Se não há inimigo e ainda há jogadores vivos
-    if (!enemy && players.length > 0 && !levelComplete) {
+    if (!enemy && players.length > 0 && !levelComplete && gameState === "playing" && !blockVictory) {
       const hasAlivePlayers = healths.some(h => !h.isDead);
       
       if (hasAlivePlayers) {
-        console.log("🎉 VITÓRIA! Nível completo!");
-        setLevelComplete(true);
-        setShowVictory(true);
+        console.log("🎉 VITÓRIA! Aguardando para mostrar ecrã...");
+        
+        setTimeout(() => {
+          setLevelComplete(true);
+          setShowVictory(true);
+          setGameState("victory");
+        }, 800);
       }
     }
-  }, [enemy, players, levelComplete, healths]);
+  }, [enemy, players, levelComplete, healths, gameState, blockVictory]);
 
   // ✅ ENTRADA: Colocar bombas
   useEffect(() => {
@@ -192,10 +241,82 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     ReadMaps(mapid).then((newMap) => {
       setMap(newMap);
       scoreManager.resetForNewLevel(mapid, difficulty.timeLimit);
+      resetTrackerRef.current = {};
     });
   }, [mapid]);
 
-  if (showVictory && levelComplete) {
+  // ✅ RESET DO MAPA - COM TRACKING PARA EVITAR DUPLICADOS
+  useEffect(() => {
+    if (gameState === "playing" && levelComplete === false && map.length > 0) {
+      if (resetTrackerRef.current[mapid]) {
+        return;
+      }
+
+      ReadMaps(mapid).then((newMap) => {
+        console.log("🔄 Resetando mapa, players e inimigo...");
+        
+        setBlockVictory(true);
+        setExplosions([]);
+        setBombs([]);
+        setMap(newMap);
+        setEnemy(null);
+        
+        resetTrackerRef.current[mapid] = true;
+        
+        setTimeout(() => {
+          setBlockVictory(false);
+        }, 1000);
+      });
+    }
+  }, [gameState, mapid]);
+
+  // ⏰ ECRÃ DE TEMPO ESGOTADO (1 jogador)
+  if (gameState === "timeup" && numPlayers === 1) {
+    return (
+      <div className="stage">
+        <TimeUpScreen
+          score={scoreManager.score}
+          onRetry={() => {
+            console.log("🔄 Tentando novamente...");
+            setGameState("playing");
+            setShowVictory(false);
+            setLevelComplete(false);
+            scoreManager.resetForNewLevel(mapid, difficulty.timeLimit);
+            resetTrackerRef.current[mapid] = false;
+            resetHealth(); // ✅ CORRIGIDO: Reset das vidas
+            setPlayerResetKey(prev => prev + 1);
+          }}
+          onMainMenu={() => {
+            onGameOver(scoreManager.score);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 🤝 ECRÃ PARA 2 JOGADORES (Empate/Vitória)
+  if (gameState === "twoplayer" && numPlayers === 2) {
+    let result = "tie";
+    
+    if (scoreManager.enemiesKilled > 0) {
+      result = "tie";
+    }
+    
+    return (
+      <div className="stage">
+        <TwoPlayerVictoryScreen
+          score={scoreManager.score}
+          result={result}
+          onMainMenu={() => {
+            onGameOver(scoreManager.score);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 🏆 ECRÃ DE VITÓRIA (1 jogador)
+  if (showVictory && levelComplete && numPlayers === 1 && gameState === "victory") {
     return (
       <div className="stage">
         <VictoryScreen
@@ -204,22 +325,21 @@ function GameView({ mapid, numPlayers, onGameOver }) {
           timeRemaining={scoreManager.timeRemaining}
           enemiesKilled={scoreManager.enemiesKilled}
           onNextLevel={() => {
-            setShowVictory(false);
-            setLevelComplete(false);
-            // Component vai rerender com novo mapid
+            console.log(`Próximo nível: ${scoreManager.level + 1}`);
+            onGameOver(scoreManager.score, scoreManager.level + 1);
           }}
           onMainMenu={() => {
             onGameOver(scoreManager.score);
           }}
         />
       </div>
-    );  
+    );
   }
 
   return (
     <div className="stage">
       <img className="fundo" src="/fundo.png" alt="fundo" />
-      <div className={`hud ${scoreManager.flashEffect ? 'flash-damage' : ''}`}>
+      <div className={`hud ${flashEffect ? 'flash-damage' : ''}`}>
         {/* Informações de Jogo */}
         <div style={{ 
           marginBottom: "15px", 
@@ -245,7 +365,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
               key={p.id}
               style={{
                 opacity: p.isDead ? 0.5 : 1,
-                color: scoreManager.lastDamagedPlayer === p.id ? '#ff4444' : '#ffd700'
+                color: lastDamagedPlayer === p.id ? '#ff4444' : '#ffd700'
               }}
             >
               Jogador {p.id + 1}: ❤️ {p.health}
@@ -296,7 +416,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
               }}
             />
           ))}
-          {/* ✅ ADICIONAR: Partículas */}
+          {/* ✅ Partículas */}
           {particles.map((p) => (
             <Particle key={p.id} x={p.x} y={p.y} id={p.id} />
           ))}

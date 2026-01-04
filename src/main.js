@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import GameView from "./GameView/GameView";
+import { TwoPlayerVictoryScreen } from "./TwoPlayers/TwoPlayerVictoryScreen.js";
 import "./App.css";
 
 function Main() {
-  const [gameState, setGameState] = useState("menu"); // "menu", "playing" ou "gameOver"
+  const [gameState, setGameState] = useState("menu");
   const [selectedMap, setSelectedMap] = useState(1);
   const [numPlayers, setNumPlayers] = useState(1);
+  const [winner, setWinner] = useState(null); // ✅ NOVO: Track do vencedor 2 jogadores
 
   // ✅ Game Over - Pressionar Enter para voltar ao menu
   useEffect(() => {
@@ -27,7 +29,7 @@ function Main() {
     return (
       <div className="menu-container">
         <div className="menu">
-          <h1>🎮 BOMBERMAN 🎮</h1>
+          <h1>🎮 BOMBALOKA 🎮</h1>
           
           <div className="menu-section">
             <h2>Selecione o Nível:</h2>
@@ -82,13 +84,47 @@ function Main() {
     );
   }
 
+  // ===== 2 JOGADORES - VITÓRIA =====
+  // ✅ NOVO: Ecrã especial para vitória em 2 jogadores
+  if (gameState === "twoplayer-victory" && winner) {
+    return (
+      <div className="stage">
+        <TwoPlayerVictoryScreen
+          score={0}  // Não há score em modo 2 jogadores
+          result={winner}  // "player1" ou "player2"
+          onMainMenu={() => {
+            setGameState("menu");
+            setWinner(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   // ===== JOGO EM ANDAMENTO =====
   if (gameState === "playing") {
     return (
       <GameView
         mapid={selectedMap}
         numPlayers={numPlayers}
-        onGameOver={() => setGameState("gameOver")}
+        onGameOver={(score, nextMapId, playerWinner) => {
+          // ✅ NOVO: Se é 2 jogadores e tem vencedor
+          if (playerWinner && (playerWinner === "player1" || playerWinner === "player2")) {
+            console.log(`🏆 ${playerWinner} venceu!`);
+            setWinner(playerWinner);
+            setGameState("twoplayer-victory");
+          } 
+          // Próximo nível
+          else if (nextMapId && nextMapId <= 3) {
+            console.log(`Passando para nível ${nextMapId}...`);
+            setSelectedMap(nextMapId);
+          } 
+          // Game Over (1 jogador perdeu todas as vidas)
+          else {
+            console.log("Voltando ao menu...");
+            setGameState("gameOver");
+          }
+        }}
       />
     );
   }
@@ -107,4 +143,4 @@ function Main() {
   }
 }
 
-export default Main; 
+export default Main;
