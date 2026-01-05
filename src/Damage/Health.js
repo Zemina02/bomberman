@@ -64,7 +64,7 @@ export function useHealth(numPlayers, initialHealth = 3) {
         isDead: false,
       }))
     );
-    setDeadPlayers([]); // ✅ Reset também
+    setDeadPlayers([]); //  Reset também
   }, [initialHealth]);
 
   // Verificar se há jogadores E se todos estão mortos
@@ -77,6 +77,6 @@ export function useHealth(numPlayers, initialHealth = 3) {
     resetHealth,
     lastDamagedPlayer,
     flashEffect,
-    deadPlayers // ✅ NOVO: Retorna quem morreu
+    deadPlayers // NOVO: Retorna quem morreu
   };
 }

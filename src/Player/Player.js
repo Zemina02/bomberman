@@ -17,10 +17,10 @@ function getSpawnPoints(map) {
   return spawns;
 }
 
-export function usePlayer(map, numPlayers, resetKey = 0) { // ✅ Recebe resetKey
+export function usePlayer(map, numPlayers, resetKey = 0) { // Recebe resetKey
   const [players, setPlayers] = useState([]);
   const initializedRef = useRef(false);
-  const lastResetKeyRef = useRef(resetKey); // ✅ NOVO: Rastreia última reset key
+  const lastResetKeyRef = useRef(resetKey); // NOVO: Rastreia última reset key
 
   // SPAWN
   useEffect(() => {
@@ -33,7 +33,7 @@ export function usePlayer(map, numPlayers, resetKey = 0) { // ✅ Recebe resetKe
       lastResetKeyRef.current = resetKey;
     }
     
-    // ✅ Se já foi inicializado, NÃO reinicializa novamente
+    // Se já foi inicializado, NÃO reinicializa novamente
     if (initializedRef.current) {
       return;
     }
@@ -53,7 +53,7 @@ export function usePlayer(map, numPlayers, resetKey = 0) { // ✅ Recebe resetKe
 
     setPlayers(initialPlayers);
     initializedRef.current = true;
-  }, [map, numPlayers, resetKey]); // ✅ Adiciona resetKey nas dependências
+  }, [map, numPlayers, resetKey]); // Adiciona resetKey nas dependências
 
   // MOVIMENTO
   const movePlayer = useCallback(

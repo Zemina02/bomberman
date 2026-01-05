@@ -62,7 +62,7 @@ export function explodeBomb({
     id: crypto.randomUUID(),
   }));
 
-  // 💥 DANO A TODOS OS JOGADORES ATINGIDOS
+  //  DANO A TODOS OS JOGADORES ATINGIDOS
   players.forEach((p) => {
     const hit = explosionTiles.some((e) => e.x === p.pos.x && e.y === p.pos.y);
 
@@ -71,7 +71,7 @@ export function explodeBomb({
     }
   });
 
-  // ✅ DANO AO INIMIGO (APENAS SE ESTIVER EXATAMENTE NO RAIO)
+  //  DANO AO INIMIGO (APENAS SE ESTIVER EXATAMENTE NO RAIO)
   if (enemy) {
     const enemyHit = explosionTiles.some((e) => e.x === enemy.x && e.y === enemy.y);
 

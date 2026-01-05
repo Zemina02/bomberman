@@ -18,14 +18,14 @@ export function useScore(initialLevel = 1, timeLimit = 60) {
   const killEnemy = useCallback(() => {
     setEnemiesKilled((prev) => prev + 1);
     addScore(100);
-    console.log("👾 Inimigo eliminado! +100 pts");
+    console.log("Inimigo eliminado! +100 pts");
   }, [addScore]);
 
   // Caixa destruída = 10 pontos
   const destroyBox = useCallback(() => {
     setBoxesDestroyed((prev) => prev + 1);
     addScore(10);
-    console.log("📦 Caixa destruída! +10 pts");
+    console.log("Caixa destruída! +10 pts");
   }, [addScore]);
 
   // Incrementar timer (chamar a cada segundo)
