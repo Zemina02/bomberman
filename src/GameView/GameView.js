@@ -13,7 +13,6 @@ import {useParticles, Particle} from "../Particles/ParticleSystem.js";
 import { DIFFICULTY_SETTINGS } from "../LevelManager/LevelManager.js";
 import { VictoryScreen } from "../Victory/VictoryScreen.js";
 
-
 import { TimeUpScreen } from "../TimeUp/TimeUpScreen.js";
 import { TwoPlayerVictoryScreen } from "../TwoPlayers/TwoPlayerVictoryScreen.js";
 
@@ -51,14 +50,13 @@ function GameView({ mapid, numPlayers, onGameOver }) {
   const [playerResetKey, setPlayerResetKey] = useState(0);
   const players = usePlayer(map, numPlayers, playerResetKey);
   const [enemy, setEnemy] = useEnemy(map, players, bombs);
-  // CORRIGIDO: Adiciona resetHealth ao destructuring
+  // ✅ CORRIGIDO: Adiciona resetHealth ao destructuring
   const { healths, takeDamage, isGameOver, flashEffect, lastDamagedPlayer, deadPlayers, resetHealth } = useHealth(numPlayers, 3);
-  
   const [explosions, setExplosions] = useState([]);
   const playersRef = useRef(players);
   const lastEnemyDamageRef = useRef({});
   const resetTrackerRef = useRef({});
-  const twoPlayerGameOverRef = useRef(false); //  NOVO: Track para 2 jogadores
+  const twoPlayerGameOverRef = useRef(false); // ✅ NOVO: Track para 2 jogadores
 
   const difficulty = DIFFICULTY_SETTINGS[mapid];
   const scoreManager = useScore(mapid, difficulty.timeLimit);
@@ -67,19 +65,19 @@ function GameView({ mapid, numPlayers, onGameOver }) {
   const [levelComplete, setLevelComplete] = useState(false);
   const [gameState, setGameState] = useState("playing");
   const [blockVictory, setBlockVictory] = useState(false);
-  
+
   useEffect(() => {
-  SoundManager.bgm();
-  return () => {
-    SoundManager.stopBGM();
-  };
-  }, [mapid]); 
-  
+    SoundManager.bgm();
+    return () => {
+      SoundManager.stopBGM();
+    };
+    }, [mapid]); 
+
   useEffect(() => {
     playersRef.current = players;
   }, [players]);
 
-  // NOVO: Quando mapid muda (próximo nível), reseta o gameState e tudo
+  // ✅ NOVO: Quando mapid muda (próximo nível), reseta o gameState e tudo
   useEffect(() => {
     setGameState("playing");
     setShowVictory(false);
@@ -87,13 +85,12 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     resetHealth();
     setPlayerResetKey(prev => prev + 1);
     resetTrackerRef.current = {};
-    twoPlayerGameOverRef.current = false; // Reset também
+    twoPlayerGameOverRef.current = false; // ✅ Reset também
   }, [mapid, resetHealth]);
 
-  // NOVO: Game Over em MODO 2 JOGADORES - Quando um jogador morre
+  // ✅ NOVO: Game Over em MODO 2 JOGADORES - Quando um jogador morre
   useEffect(() => {
     if (numPlayers === 2 && gameState === "playing") {
-      setGameState("gameover")
       // Verifica se algum jogador morreu (deadPlayers tem conteúdo)
       if (deadPlayers.length > 0 && !twoPlayerGameOverRef.current) {
         // Um jogador morreu!
@@ -114,10 +111,9 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     }
   }, [numPlayers, gameState, deadPlayers, healths, onGameOver, scoreManager.score]);
 
-  // Game Over em MODO 1 JOGADOR - Quando o jogador morre
+  // ✅ Game Over em MODO 1 JOGADOR - Quando o jogador morre
   useEffect(() => {
     if (numPlayers === 1 && isGameOver && onGameOver) {
-      setGameState("gameover")
       console.log("🎮 Game Over acionado! (1 jogador)");
       onGameOver(scoreManager.score);
     }
@@ -133,7 +129,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     return () => clearInterval(timer);
   }, [isGameOver, showVictory, gameState]);
 
-  // Verificar se tempo acabou
+  // ⏰ Verificar se tempo acabou
   useEffect(() => {
     if (scoreManager.isTimeUp && gameState === "playing") {
       // Tempo esgotou
@@ -147,7 +143,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     }
   }, [scoreManager.isTimeUp, gameState, numPlayers]);
 
-  // COLISÃO: Inimigo toca jogador
+  // ✅ COLISÃO: Inimigo toca jogador
   useEffect(() => {
     if (!enemy || !players.length) return;
 
@@ -165,7 +161,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     });
   }, [enemy, players, takeDamage]);
 
-  // VITÓRIA COM DELAY
+  // ✅ VITÓRIA COM DELAY
   useEffect(() => {
     if (!enemy && players.length > 0 && !levelComplete && gameState === "playing" && !blockVictory) {
       const hasAlivePlayers = healths.some(h => !h.isDead);
@@ -182,7 +178,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     }
   }, [enemy, players, levelComplete, healths, gameState, blockVictory]);
 
-  // ENTRADA: Colocar bombas
+  // ✅ ENTRADA: Colocar bombas
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isGameOver) return;
@@ -256,7 +252,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     });
   }, [mapid]);
 
-  // RESET DO MAPA - COM TRACKING PARA EVITAR DUPLICADOS
+  // ✅ RESET DO MAPA - COM TRACKING PARA EVITAR DUPLICADOS
   useEffect(() => {
     if (gameState === "playing" && levelComplete === false && map.length > 0) {
       if (resetTrackerRef.current[mapid]) {
@@ -264,7 +260,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
       }
 
       ReadMaps(mapid).then((newMap) => {
-        console.log("Resetando mapa, players e inimigo...");
+        console.log("🔄 Resetando mapa, players e inimigo...");
         
         setBlockVictory(true);
         setExplosions([]);
@@ -281,7 +277,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     }
   }, [gameState, mapid]);
 
-  // ECRÃ DE TEMPO ESGOTADO (1 jogador)
+  // ⏰ ECRÃ DE TEMPO ESGOTADO (1 jogador)
   if (gameState === "timeup" && numPlayers === 1) {
     return (
       <div className="stage">
@@ -305,7 +301,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     );
   }
 
-  // ECRÃ PARA 2 JOGADORES (Empate/Vitória)
+  // 🤝 ECRÃ PARA 2 JOGADORES (Empate/Vitória)
   if (gameState === "twoplayer" && numPlayers === 2) {
     let result = "tie";
     
@@ -326,7 +322,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
     );
   }
 
-  // ECRÃ DE VITÓRIA (1 jogador)
+  // 🏆 ECRÃ DE VITÓRIA (1 jogador)
   if (showVictory && levelComplete && numPlayers === 1 && gameState === "victory") {
     return (
       <div className="stage">
@@ -427,7 +423,7 @@ function GameView({ mapid, numPlayers, onGameOver }) {
               }}
             />
           ))}
-          {/* Partículas */}
+          {/* ✅ Partículas */}
           {particles.map((p) => (
             <Particle key={p.id} x={p.x} y={p.y} id={p.id} />
           ))}
